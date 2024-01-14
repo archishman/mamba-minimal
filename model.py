@@ -119,7 +119,7 @@ class Mamba(nn.Module):
         def load_state_dict_hf(model_name, device=None, dtype=None):
             resolved_archive_file = cached_file(model_name, WEIGHTS_NAME,
                                                 _raise_exceptions_for_missing_entries=False)
-            return mlx.load(resolved_archive_file, weights_only=True, map_location='cpu', mmap=True)
+            return mlx.core.load(resolved_archive_file)
         
         config_data = load_config_hf(pretrained_model_name)
         args = ModelArgs(
@@ -190,9 +190,9 @@ class MambaBlock(nn.Module):
         # dt_proj projects Δ from dt_rank to d_in
         self.dt_proj = nn.Linear(args.dt_rank, args.d_inner, bias=True)
 
-        A = mlx.arange(1, args.d_state + 1).unsqueeze(0).repeat(args.d_inner, 1)
-        self.A_log = nn.Parameter(mlx.log(A))
-        self.D = nn.Parameter(mlx.ones(args.d_inner))
+        A = mlx.core.repeat(mlx.core.arange(1, args.d_state + 1)[None, ...], args.d_inner, 0)
+        self.A_log = mlx.core.log(A)
+        self.D = mlx.core.ones(args.d_inner)
         self.out_proj = nn.Linear(args.d_inner, args.d_model, bias=args.bias)
         
 
@@ -323,7 +323,7 @@ class RMSNorm(nn.Module):
                  eps: float = 1e-5):
         super().__init__()
         self.eps = eps
-        self.weight = nn.Parameter(mlx.ones(d_model))
+        self.weight = mlx.core.ones(d_model)
 
 
     def forward(self, x):

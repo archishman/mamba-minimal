@@ -22,9 +22,8 @@ Glossary:
 from __future__ import annotations
 import math
 import json
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import mlx
+import mlx.nn as nn
 from dataclasses import dataclass
 from einops import rearrange, repeat, einsum
 
@@ -226,11 +225,11 @@ class MambaBlock(nn.Module):
         x = self.conv1d(x)[:, :, :l]
         x = rearrange(x, 'b d_in l -> b l d_in')
         
-        x = F.silu(x)
+        x = nn.silu(x)
 
         y = self.ssm(x)
         
-        y = y * F.silu(res)
+        y = y * nn.silu(res)
         
         output = self.out_proj(y)
 

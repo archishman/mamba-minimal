@@ -25,7 +25,7 @@ import json
 import mlx
 import mlx.nn as nn
 from dataclasses import dataclass
-from einops import rearrange, repeat, einsum
+from einops import repeat, einsum
 
 
 @dataclass
@@ -215,9 +215,10 @@ class MambaBlock(nn.Module):
         x_and_res = self.in_proj(x)  # shape (b, l, 2 * d_in)
         (x, res) = x_and_res.split(split_size=[self.args.d_inner, self.args.d_inner], dim=-1)
 
-        x = rearrange(x, 'b l d_in -> b d_in l')
+        x = x.permute(0, 2, 1)  # Rearrange from [batch, seq_len, features] to [batch, features, seq_len]
+        x = self.conv1d(x)     # Apply convolution
         x = self.conv1d(x, groups=self.groups, padding=self.padding)[:, :, :l]
-        x = rearrange(x, 'b d_in l -> b l d_in')
+        x = x.permute(0, 2, 1) 
         
         x = nn.silu(x)
 

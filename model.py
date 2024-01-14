@@ -25,7 +25,7 @@ import json
 import mlx
 import mlx.nn as nn
 from dataclasses import dataclass
-from einops import repeat, einsum
+from einops import einsum
 
 
 @dataclass
@@ -190,7 +190,7 @@ class MambaBlock(nn.Module):
         # dt_proj projects Δ from dt_rank to d_in
         self.dt_proj = nn.Linear(args.dt_rank, args.d_inner, bias=True)
 
-        A = repeat(mlx.core.arange(1, args.d_state + 1), 'n -> d n', d=args.d_inner)
+        A = mlx.arange(1, args.d_state + 1).unsqueeze(0).repeat(args.d_inner, 1)
         self.A_log = nn.Parameter(mlx.log(A))
         self.D = nn.Parameter(mlx.ones(args.d_inner))
         self.out_proj = nn.Linear(args.d_inner, args.d_model, bias=args.bias)

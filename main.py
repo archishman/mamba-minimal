@@ -21,9 +21,9 @@ import torch.nn.functional as F
 def generate(model,
              tokenizer,
              prompt: str,
-             n_tokens_to_gen: int = 50,
-             sample: bool = True,
-             top_k: int = 40):
+             n_tokens_to_gen: int = 10,
+             sample: bool = False,
+             top_k: int = None):
     model.eval()
     input_ids = tokenizer(prompt, return_tensors='pt').to("mps")
     input_ids = input_ids.input_ids

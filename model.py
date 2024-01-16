@@ -82,7 +82,10 @@ class Mamba(nn.Module):
         """
         x = self.embedding(input_ids)
         
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
+            if "mps" in x.device.type:
+                torch.mps.synchronize()
+            print(layer, x)
             x = layer(x)
             
         x = self.norm_f(x)
@@ -169,6 +172,8 @@ class ResidualBlock(nn.Module):
                 [Norm -> Mamba -> Add] -> [Norm -> Mamba -> Add] -> [Norm -> Mamba -> Add] -> ....
             
         """
+        torch.mps.synchronize()
+        print("inside resudial block")
         output = self.mixer(self.norm(x)) + x
 
         return output
@@ -217,6 +222,8 @@ class MambaBlock(nn.Module):
             mamba_inner_ref(), https://github.com/state-spaces/mamba/blob/main/mamba_ssm/ops/selective_scan_interface.py#L311
             
         """
+        torch.mps.synchronize()
+        print("inside mambablock")
         (b, l, d) = x.shape
         
         x_and_res = self.in_proj(x)  # shape (b, l, 2 * d_in)
@@ -233,7 +240,8 @@ class MambaBlock(nn.Module):
         y = y * F.silu(res)
         
         output = self.out_proj(y)
-
+        torch.mps.synchronize()
+        print("exit mambablock")
         return output
 
     
@@ -252,6 +260,8 @@ class MambaBlock(nn.Module):
             mamba_inner_ref(), https://github.com/state-spaces/mamba/blob/main/mamba_ssm/ops/selective_scan_interface.py#L311
             
         """
+        torch.mps.synchronize()
+        print("inside ssm")
         (d_in, n) = self.A_log.shape
 
         # Compute ∆ A B C D, the state space parameters.
@@ -268,7 +278,8 @@ class MambaBlock(nn.Module):
         delta = F.softplus(self.dt_proj(delta))  # (b, l, d_in)
         
         y = self.selective_scan(x, delta, A, B, C, D)  # This is similar to run_SSM(A, B, C, u) in The Annotated S4 [2]
-        
+        torch.mps.synchronize()
+        print("exit ssm")
         return y
 
     
@@ -299,6 +310,8 @@ class MambaBlock(nn.Module):
             Note: I refactored some parts out of `selective_scan_ref` out, so the functionality doesn't match exactly.
             
         """
+        torch.mps.synchronize()
+        print("inside selective scan")
         (b, l, d_in) = u.shape
         n = A.shape[1]
         
@@ -308,18 +321,26 @@ class MambaBlock(nn.Module):
         #   "A is the more important term and the performance doesn't change much with the simplification on B"
         deltaA = torch.exp(einsum(delta, A, 'b l d_in, d_in n -> b l d_in n'))
         deltaB_u = einsum(delta, B, u, 'b l d_in, b l n, b l d_in -> b l d_in n')
-        
+        torch.mps.synchronize()
+        print("inside selective scan 1")
         # Perform selective scan (see scan_SSM() in The Annotated S4 [2])
+        print((b, d_in, n, u, delta, A, B, C, D))
         x = torch.zeros((b, d_in, n), device=deltaA.device)
+        torch.mps.synchronize()
+        print("inside selective scan 1.1")
         ys = []    
         for i in range(l):
+            torch.mps.synchronize()
+            print("inside selective scan 1.56", i)
             x = deltaA[:, i] * x + deltaB_u[:, i]
             y = einsum(x, C[:, i, :], 'b d_in n, b n -> b d_in')
             ys.append(y)
         y = torch.stack(ys, dim=1)  # shape (b, l, d_in)
-        
+        torch.mps.synchronize()
+        print("inside selective scan 2")
         y = y + u * D
-    
+        torch.mps.synchronize()
+        print("exit selective scan")
         return y
 
 
@@ -333,7 +354,10 @@ class RMSNorm(nn.Module):
 
 
     def forward(self, x):
+        torch.mps.synchronize()
+        print("inside rmsnorm")
         output = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps) * self.weight
-
+        torch.mps.synchronize()
+        print("exit rmsnorm")
         return output
         

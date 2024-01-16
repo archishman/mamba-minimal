@@ -1,0 +1,4 @@
+/Users/archishman/Code/mamba-minimal/ops/extensions/build/temp.macosx-11.0-arm64-cpython-311/mlx_sample_extensions/CMakeFiles/mlx_ext.dir
+/Users/archishman/Code/mamba-minimal/ops/extensions/build/temp.macosx-11.0-arm64-cpython-311/mlx_sample_extensions/CMakeFiles/mlx_sample_extensions.dir
+/Users/archishman/Code/mamba-minimal/ops/extensions/build/temp.macosx-11.0-arm64-cpython-311/mlx_sample_extensions/CMakeFiles/edit_cache.dir
+/Users/archishman/Code/mamba-minimal/ops/extensions/build/temp.macosx-11.0-arm64-cpython-311/mlx_sample_extensions/CMakeFiles/rebuild_cache.dir
